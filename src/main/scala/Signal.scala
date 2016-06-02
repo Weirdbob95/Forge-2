@@ -5,20 +5,13 @@ import Implicit._
 
 class Signal[T](
 
-  private var value: T
+  protected var value: T
 
 ) extends Destructible with Supplier[T] {
 
-  private var runnables: List[Runnable] = Nil
+  protected var runnables: List[Runnable] = Nil
 
   def get() = value
-
-  def set(t: T) {
-    if (!destroyed) {
-      value = t
-      runnables.foreach(_ run)
-    }
-  }
 
   def subscribe(run: Runnable): Observer = {
     runnables = runnables :+ run
@@ -41,7 +34,7 @@ class Signal[T](
 
   //Useful functions
   def buffer(f: Signal[Any]): Signal[List[T]] = {
-    val s = new Signal(List[T]())
+    val s = new MutableSignal(List[T]())
     var l = List(value)
     s addParent subscribe(() => l = l :+ value)
     s addParent f.subscribe(() => { s.set(l); l = Nil })
@@ -49,14 +42,14 @@ class Signal[T](
   }
 
   def combineLatest[R, S](r: Signal[R], f: BiFunction[T, R, S]): Signal[S] = {
-    val s = new Signal(f(value, r.value))
+    val s = new MutableSignal(f(value, r.value))
     s addParent subscribe(() => s.set(f(value, r.value)))
     s addParent r.subscribe(() => s.set(f(value, r.value)))
     s
   }
 
   def count(): Signal[Int] = {
-    val s = new Signal(0)
+    val s = new MutableSignal(0)
     s addParent subscribe(() => s.set(s.value + 1))
     s
   }
@@ -69,7 +62,7 @@ class Signal[T](
   }
 
   def filter(f: Function[T, Boolean]): Signal[T] = {
-    val s = new Signal(value)
+    val s = new MutableSignal(value)
     s addParent subscribe(() => if (f(value)) s.set(value))
     s
   }
@@ -79,7 +72,7 @@ class Signal[T](
   def forEach(f: Consumer[T]) = subscribe(() => f.accept(value))
 
   def map[R](f: Function[T, R]): Signal[R] = {
-    val s = new Signal(f(value))
+    val s = new MutableSignal(f(value))
     s addParent subscribe(() => s.set(f(value)))
     s
   }
@@ -87,7 +80,7 @@ class Signal[T](
   def ofType[R](c: Class[R]): Signal[R] = filter(c.isInstance(_)).map(c.cast)
 
   def reduce[R](r: R, f: BiFunction[T, R, R]): Signal[R] = {
-    val s = new Signal(r)
+    val s = new MutableSignal(r)
     s addParent subscribe(() => s.set(f(value, s.value)))
     s
   }
@@ -95,7 +88,7 @@ class Signal[T](
   def unit(): Signal[Unit] = map(_ => ())
 
   def until(f: Supplier[Boolean]): Signal[T] = {
-    val s = new Signal(value)
+    val s = new MutableSignal(value)
     s addParent subscribe(() => if (f.get) s.set(value)
     else s.destroy)
     s
@@ -105,7 +98,7 @@ class Signal[T](
 object Signal {
 
   def combine[T](a: Signal[T]*): Signal[T] = {
-    val s = new Signal(a(0).value)
+    val s = new MutableSignal(a(0).value)
     a.foreach(s addParent _.forEach((v: T) => s.set(v)))
     s
   }
