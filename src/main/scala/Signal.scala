@@ -11,6 +11,15 @@ class Signal[T](
 
   protected var runnables: List[Runnable] = Nil
 
+  private def createSignal[R](name: String, r: R, f: MutableSignal[R] => Any): MutableSignal[R] = {
+    val s = new MutableSignal(r)
+    s.name = name
+    Destructible.push(s)
+    f(s)
+    Destructible.pop
+    s
+  }
+
   def get() = value
 
   def subscribe(run: Runnable): Observer = {
@@ -25,33 +34,43 @@ class Signal[T](
         i.setAccessible(true)
         val d = i.get(func)
         if (d.isInstanceOf[Destructible]) {
-          o.addParent(d.asInstanceOf[Destructible])
+          if (Destructible.peek.isEmpty || Destructible.peek.get != d)
+            o.addParent(d.asInstanceOf[Destructible])
         }
       })
     })
+    if (Destructible.peek.isDefined) {
+      Destructible.peek.get.addParent(o)
+      o.name = "Observer[" + name + " -> " + Destructible.peek.get.name + "]"
+    }
     o
   }
 
   //Useful functions
   def buffer(f: Signal[Any]): Signal[List[T]] = {
-    val s = new MutableSignal(List[T]())
-    var l = List(value)
-    s addParent subscribe(() => l = l :+ value)
-    s addParent f.subscribe(() => { s.set(l); l = Nil })
-    s
+    createSignal("buffer", List[T](), s => {
+      var l = List(value)
+      subscribe(() => l = l :+ value)
+      f.subscribe(() => { s.set(l); l = Nil })
+    })
+  }
+
+  def combine(a: Signal[T]*): Signal[T] = {
+    createSignal("combine", value, s => {
+      forEach((v: T) => s.set(v))
+      a.foreach(_.forEach((v: T) => s.set(v)))
+    })
   }
 
   def combineLatest[R, S](r: Signal[R], f: BiFunction[T, R, S]): Signal[S] = {
-    val s = new MutableSignal(f(value, r.value))
-    s addParent subscribe(() => s.set(f(value, r.value)))
-    s addParent r.subscribe(() => s.set(f(value, r.value)))
-    s
+    createSignal("combineLatest", f(value, r.value), s => {
+      subscribe(() => s.set(f(value, r.value)))
+      r.subscribe(() => s.set(f(value, r.value)))
+    })
   }
 
   def count(): Signal[Int] = {
-    val s = new MutableSignal(0)
-    s addParent subscribe(() => s.set(s.value + 1))
-    s
+    createSignal("count", 0, s => subscribe(() => s.set(s.value + 1)))
   }
 
   def distinct(): Signal[T] = {
@@ -62,9 +81,7 @@ class Signal[T](
   }
 
   def filter(f: Function[T, Boolean]): Signal[T] = {
-    val s = new MutableSignal(value)
-    s addParent subscribe(() => if (f(value)) s.set(value))
-    s
+    createSignal("filter", value, s => subscribe(() => if (f(value)) s.set(value)))
   }
 
   def first(n: Int): Signal[T] = until(count().map(_ > n))
@@ -72,34 +89,18 @@ class Signal[T](
   def forEach(f: Consumer[T]) = subscribe(() => f.accept(value))
 
   def map[R](f: Function[T, R]): Signal[R] = {
-    val s = new MutableSignal(f(value))
-    s addParent subscribe(() => s.set(f(value)))
-    s
+    createSignal("map", f(value), s => subscribe(() => s.set(f(value))))
   }
 
   def ofType[R](c: Class[R]): Signal[R] = filter(c.isInstance(_)).map(c.cast)
 
   def reduce[R](r: R, f: BiFunction[T, R, R]): Signal[R] = {
-    val s = new MutableSignal(r)
-    s addParent subscribe(() => s.set(f(value, s.value)))
-    s
+    createSignal("reduce", r, s => subscribe(() => s.set(f(value, s.value))))
   }
 
-  def unit(): Signal[Unit] = map(_ => ())
+  def toUnit(): Signal[Unit] = map(_ => ())
 
   def until(f: Supplier[Boolean]): Signal[T] = {
-    val s = new MutableSignal(value)
-    s addParent subscribe(() => if (f.get) s.set(value)
-    else s.destroy)
-    s
-  }
-}
-
-object Signal {
-
-  def combine[T](a: Signal[T]*): Signal[T] = {
-    val s = new MutableSignal(a(0).value)
-    a.foreach(s addParent _.forEach((v: T) => s.set(v)))
-    s
+    createSignal("until", value, s => subscribe(() => if (f.get) s.set(value) else s.destroy))
   }
 }

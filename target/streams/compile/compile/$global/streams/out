@@ -17,7 +17,7 @@
 [0m[[0minfo[0m] [0mCompiling 6 Scala sources to C:\Users\Rory\Desktop\Programs\Current Projects\ScalaSbtProject\target\scala-2.11\classes...[0m
 [0m[[0mdebug[0m] [0mGetting compiler-interface from component compiler for Scala 2.11.4[0m
 [0m[[0mdebug[0m] [0mGetting compiler-interface from component compiler for Scala 2.11.4[0m
-[0m[[0mdebug[0m] [0mRunning cached compiler 4d171c7e, interfacing (CompilerInterface) with Scala compiler version 2.11.4[0m
+[0m[[0mdebug[0m] [0mRunning cached compiler 5b528a7e, interfacing (CompilerInterface) with Scala compiler version 2.11.4[0m
 [0m[[0mdebug[0m] [0mCalling Scala compiler with arguments  (CompilerInterface):[0m
 [0m[[0mdebug[0m] [0m	-unchecked[0m
 [0m[[0mdebug[0m] [0m	-deprecation[0m
@@ -27,7 +27,7 @@
 [0m[[0mdebug[0m] [0m	C:\Users\Rory\Desktop\Programs\Current Projects\ScalaSbtProject\target\scala-2.11\classes[0m
 [0m[[33mwarn[0m] [0mthere were 7 feature warnings; re-run with -feature for details[0m
 [0m[[33mwarn[0m] [0mone warning found[0m
-[0m[[0mdebug[0m] [0mScala compilation took 4.413748954 s[0m
+[0m[[0mdebug[0m] [0mScala compilation took 6.905716914 s[0m
 [0m[[0mdebug[0m] [0mInvalidating by inheritance (transitively)...[0m
 [0m[[0mdebug[0m] [0mInitial set of included nodes: Set(C:\Users\Rory\Desktop\Programs\Current Projects\ScalaSbtProject\src\main\scala\NewMain.scala)[0m
 [0m[[0mdebug[0m] [0mInvalidated by transitive public inheritance: Set(C:\Users\Rory\Desktop\Programs\Current Projects\ScalaSbtProject\src\main\scala\NewMain.scala)[0m
